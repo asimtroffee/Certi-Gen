@@ -1,0 +1,194 @@
+// =============================================================================
+// CertiGen — Prisma Schema
+// =============================================================================
+// Database: PostgreSQL 16
+// Auth:     NextAuth.js v5 (Auth.js) with Google OAuth via @auth/prisma-adapter
+// =============================================================================
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// NextAuth.js Standard Tables
+// =============================================================================
+// These four models are required by @auth/prisma-adapter.
+// The "User" model doubles as our Admin — only authenticated Google users
+// who appear in this table can access the admin dashboard.
+// =============================================================================
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("admin") // Future-proof: "admin" | "superadmin"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts    Account[]
+  sessions    Session[]
+  events      Event[]
+  submissions Submission[]
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// =============================================================================
+// CertiGen Domain Models
+// =============================================================================
+
+/// An event (e.g., "2026 Science Fair") created by an admin.
+/// Contains the certificate template image URL and the full bounding-box
+/// configuration as a single JSON blob consumed directly by the frontend canvas.
+model Event {
+  id      String @id @default(uuid()) @db.Uuid
+  adminId String @db.Uuid
+  title   String
+  slug    String @unique // URL-friendly identifier, e.g. "science-fair-2026"
+
+  /// Public URL or storage path to the certificate template image.
+  templateUrl String
+
+  /// Full canvas configuration: array of text bounding boxes.
+  /// Example:
+  /// [
+  ///   {
+  ///     "type": "Name",
+  ///     "x": 400, "y": 300,
+  ///     "width": 600, "height": 60,
+  ///     "fontFamily": "Inter",
+  ///     "fontSize": 36,
+  ///     "fontColor": "#1a1a1a",
+  ///     "fontWeight": "bold",
+  ///     "textAlign": "center"
+  ///   }
+  /// ]
+  templateConfig Json
+
+  /// Google Sheet ID linked to this event for auto-importing form responses.
+  googleFormSheetId String? @unique
+
+  /// The last row number polled from the Google Sheet (0 = none).
+  lastPolledRow Int @default(0)
+
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  admin      User         @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  magicLinks MagicLink[]
+  submissions Submission[]
+
+  @@index([adminId])
+  @@index([slug])
+}
+
+/// A time-limited, single-use magic link sent to a teacher's email.
+/// Grants access to upload a CSV of student names for bulk certificate generation.
+model MagicLink {
+  id      String @id @default(uuid()) @db.Uuid
+  eventId String @db.Uuid
+  token   String @unique @db.VarChar(64) // crypto-random hex token
+
+  /// The teacher's email this link was sent to.
+  teacherEmail String
+
+  /// Link expires 7 days after creation.
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  /// Admin can manually revoke a link before expiry.
+  isRevoked Boolean @default(false)
+
+  // Relations
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  submission Submission? // 1:1 — at most one submission per link
+
+  @@index([eventId])
+  @@index([token])
+  @@index([teacherEmail])
+}
+
+/// A submission (teacher via magic link OR admin via bulk upload).
+/// Stores parsed CSV student data as JSONB — we never store generated PDFs.
+model Submission {
+  id          String  @id @default(uuid()) @db.Uuid
+  magicLinkId String? @unique @db.Uuid // Null for admin bulk sends; unique when set (1:1 with MagicLink)
+
+  /// Direct event link — always set in code (either via magic link's event or directly).
+  eventId String? @db.Uuid
+  adminId String? @db.Uuid // Set for admin bulk-generated submissions
+
+  /// Teacher identity (captured at submission time, not from the link).
+  teacherName  String
+  teacherEmail String
+
+  /// The full parsed CSV data as a JSON array of objects.
+  /// Example: [{ "name": "Alice", "class": "10-A" }, ...]
+  studentData Json
+
+  /// Number of certificates generated from this submission.
+  certificateCount Int @default(0)
+
+  /// Whether the teacher has downloaded the final ZIP archive.
+  hasDownloaded Boolean   @default(false)
+  downloadedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  magicLink MagicLink? @relation(fields: [magicLinkId], references: [id], onDelete: Cascade)
+  event     Event?     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  admin     User?      @relation(fields: [adminId], references: [id])
+
+  @@index([magicLinkId])
+  @@index([adminId])
+  @@index([teacherEmail])
+  @@index([eventId, certificateCount])
+}
