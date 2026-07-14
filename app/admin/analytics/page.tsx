@@ -91,7 +91,7 @@ export default async function AnalyticsPage(props: {
     OR: [{ adminId: user.id }, { magicLink: { event: { adminId: user.id } } }],
   };
 
-  const [totalEvents, totalMagicLinks, submissions] = await Promise.all([
+  const [totalEvents, totalMagicLinks] = await Promise.all([
     prisma.event.count({ where: eventWhere }),
     prisma.magicLink.count({
       where: {
@@ -99,24 +99,35 @@ export default async function AnalyticsPage(props: {
         ...(isSingleEvent ? { event: { id: eventId } } : { event: { adminId: user.id } }),
       },
     }),
-    prisma.submission.findMany({
-      where: submissionWhere,
-      select: {
-        id: true,
-        certificateCount: true,
-        createdAt: true,
-        teacherName: true,
-        teacherEmail: true,
-        hasDownloaded: true,
-        adminId: true,
-        magicLinkId: true,
-        studentData: true,
-      },
-      orderBy: { createdAt: "desc" },
-    }),
   ]);
 
-  const totalCertificates = submissions.reduce<number>((s, x) => s + x.certificateCount, 0);
+  const submissions: Array<{
+    id: string;
+    certificateCount: number;
+    createdAt: Date;
+    teacherName: string;
+    teacherEmail: string;
+    hasDownloaded: boolean;
+    adminId: string | null;
+    magicLinkId: string | null;
+    studentData: unknown;
+  }> = await prisma.submission.findMany({
+    where: submissionWhere,
+    select: {
+      id: true,
+      certificateCount: true,
+      createdAt: true,
+      teacherName: true,
+      teacherEmail: true,
+      hasDownloaded: true,
+      adminId: true,
+      magicLinkId: true,
+      studentData: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const totalCertificates = submissions.reduce((s, x) => s + x.certificateCount, 0);
   const uniqueTeachers = new Set(submissions.map((s) => s.teacherEmail)).size;
 
   // ── Timeline ──
