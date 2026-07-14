@@ -145,7 +145,12 @@ export default async function AnalyticsPage(props: {
   }[] = [];
 
   if (!isSingleEvent) {
-    const events = await prisma.event.findMany({
+    const events: Array<{
+      id: string;
+      title: string;
+      createdAt: Date;
+      _count: { magicLinks: number };
+    }> = await prisma.event.findMany({
       where: { adminId: user.id, isArchived: false },
       include: {
         _count: { select: { magicLinks: true } },
@@ -153,7 +158,11 @@ export default async function AnalyticsPage(props: {
       orderBy: { createdAt: "desc" },
     });
 
-    const allSubs = await prisma.submission.findMany({
+    const allSubs: Array<{
+      eventId: string | null;
+      certificateCount: number;
+      adminId: string | null;
+    }> = await prisma.submission.findMany({
       where: {
         OR: [
           { adminId: user.id },
