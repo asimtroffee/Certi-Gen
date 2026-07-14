@@ -116,7 +116,7 @@ export default async function AnalyticsPage(props: {
     }),
   ]);
 
-  const totalCertificates = submissions.reduce((s: number, x) => s + x.certificateCount, 0);
+  const totalCertificates = submissions.reduce<number>((s, x) => s + x.certificateCount, 0);
   const uniqueTeachers = new Set(submissions.map((s) => s.teacherEmail)).size;
 
   // ── Timeline ──
