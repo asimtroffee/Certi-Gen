@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { requireAdmin, requireEventOwnership } from "@/src/lib/auth-guard";
-import type { Prisma } from "@prisma/client";
 
 interface RouteParams {
   params: Promise<{ eventId: string }>;
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         adminId: admin.id,
         teacherName: teacherName || admin.name || "Admin",
         teacherEmail: admin.email,
-        studentData: studentData as unknown as Prisma.InputJsonValue,
+        studentData: studentData as unknown as Record<string, unknown>[],
         certificateCount: studentData.length,
         hasDownloaded: true,
         downloadedAt: new Date(),
