@@ -86,7 +86,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Enrich with computed status
     const now = new Date();
-    const enriched = magicLinks.map((ml) => ({
+    const enriched = magicLinks.map((ml: {
+      id: string;
+      teacherEmail: string;
+      expiresAt: Date;
+      isRevoked: boolean;
+      createdAt: Date;
+      submission: {
+        id: string;
+        teacherName: string;
+        teacherEmail: string;
+        certificateCount: number;
+        hasDownloaded: boolean;
+        createdAt: Date;
+      } | null;
+    }) => ({
       ...ml,
       status: ml.isRevoked
         ? "revoked"

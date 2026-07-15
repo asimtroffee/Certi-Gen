@@ -117,7 +117,13 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       lastPolledRow: totalRows,
       linksCreated: created.length,
       skipped: skipped.length,
-      teachers: results.map((r) => ({
+      teachers: results.map((r: {
+        teacherName: string;
+        teacherEmail: string;
+        magicUrl?: string;
+        skipped?: boolean;
+        error?: string;
+      }) => ({
         name: r.teacherName,
         email: r.teacherEmail,
         status: r.magicUrl ? "link_sent" : r.skipped ? "already_active" : "error",

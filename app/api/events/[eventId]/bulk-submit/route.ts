@@ -47,7 +47,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         adminId: admin.id,
         teacherName: teacherName || admin.name || "Admin",
         teacherEmail: admin.email,
-        studentData: studentData as unknown as Record<string, unknown>[],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        studentData: studentData as any,
         certificateCount: studentData.length,
         hasDownloaded: true,
         downloadedAt: new Date(),

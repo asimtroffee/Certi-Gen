@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const allEventIds = await prisma.event.findMany({
       where: { adminId: admin.id },
       select: { id: true },
-    }).then((rows: { id: string }[]) => rows.map((r) => r.id));
+    }).then((rows: { id: string }[]) => rows.map((r: { id: string }) => r.id));
 
     const [events, totalEvents, totalMagicLinks, archivedCount, submissions] = await Promise.all([
       prisma.event.findMany({
