@@ -108,8 +108,8 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       data: { lastPolledRow: totalRows },
     });
 
-    const created = results.filter((r) => r.magicUrl);
-    const skipped = results.filter((r) => r.skipped);
+    const created = results.filter((r: { magicUrl?: string }) => r.magicUrl);
+    const skipped = results.filter((r: { skipped?: boolean }) => r.skipped);
 
     return NextResponse.json({
       message: `Processed ${rows.length} response(s). Created ${created.length} new magic link(s).`,

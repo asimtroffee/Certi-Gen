@@ -52,10 +52,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     // Compute aggregate stats
     const totalSubmissions = event!.magicLinks.filter(
-      (ml) => ml.submission !== null
+      (ml: { submission: { certificateCount: number } | null }) => ml.submission !== null
     ).length;
     const totalCertificates = event!.magicLinks.reduce(
-      (sum, ml) => sum + (ml.submission?.certificateCount ?? 0),
+      (sum: number, ml: { submission: { certificateCount: number } | null }) => sum + (ml.submission?.certificateCount ?? 0),
       0
     );
 

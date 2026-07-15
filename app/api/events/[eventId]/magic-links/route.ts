@@ -15,7 +15,7 @@ const rateLimitMap = new Map<string, number[]>();
 function checkRateLimit(adminId: string, maxRequests = 10, windowMs = 60_000): boolean {
   const now = Date.now();
   let timestamps = rateLimitMap.get(adminId) ?? [];
-  timestamps = timestamps.filter((t) => now - t < windowMs);
+  timestamps = timestamps.filter((t: number) => now - t < windowMs);
 
   if (timestamps.length >= maxRequests) return false;
 
@@ -29,7 +29,7 @@ if (typeof setInterval !== "undefined") {
   setInterval(() => {
     const cutoff = Date.now() - 60_000;
     for (const [key, timestamps] of rateLimitMap) {
-      const filtered = timestamps.filter((t) => t > cutoff);
+      const filtered = timestamps.filter((t: number) => t > cutoff);
       if (filtered.length === 0) rateLimitMap.delete(key);
       else rateLimitMap.set(key, filtered);
     }
