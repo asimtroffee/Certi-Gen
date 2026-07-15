@@ -25,7 +25,7 @@ function groupTimeline(
 ) {
   const map = new Map<string, { certificates: number; submissions: number }>();
 
-  let cursor = startDate ? new Date(startDate) : new Date("2020-01-01");
+  const cursor = startDate ? new Date(startDate) : new Date("2020-01-01");
   const now = new Date();
   const isWide = range === "90" || range === "all";
   const fmt = isWide ? "month" : "day";
@@ -127,8 +127,8 @@ export default async function AnalyticsPage(props: {
     orderBy: { createdAt: "desc" },
   });
 
-  const totalCertificates = submissions.reduce((s: number, x: any) => s + x.certificateCount, 0);
-  const uniqueTeachers = new Set(submissions.map((s: any) => s.teacherEmail)).size;
+  const totalCertificates = submissions.reduce((s: number, x: { certificateCount: number }) => s + x.certificateCount, 0);
+  const uniqueTeachers = new Set(submissions.map((s: { teacherEmail: string }) => s.teacherEmail)).size;
 
   // ── Timeline ──
   const timeline = groupTimeline(submissions, startDate, range);
@@ -221,7 +221,7 @@ export default async function AnalyticsPage(props: {
     : undefined;
 
   // ── Student List (event-specific) ──
-  let studentList: {
+  const studentList: {
     name: string;
     otherFields: Record<string, string>;
     submittedBy: string;

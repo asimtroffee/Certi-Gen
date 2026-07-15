@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Plus, Type, Image as ImageIcon, Trash2, Loader2, Upload, GripHorizontal, ImageUp } from "lucide-react";
+import { ArrowLeft, Save, Type, Image as ImageIcon, Trash2, Loader2, Upload, GripHorizontal, ImageUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
@@ -44,7 +44,6 @@ type Props = {
 
 const SAMPLE_TEXT = "Sample Name";
 const HIT_THRESHOLD = 24;
-const CANVAS_MAX_W = 900;
 
 const FONT_FAMILIES = [
   "Great Vibes",

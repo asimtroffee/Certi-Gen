@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(totalEvents / PAGE_SIZE);
     const totalSubmissions = submissions.length;
-    const totalCertificates = submissions.reduce((sum: number, s: any) => sum + s.certificateCount, 0);
+    const totalCertificates = submissions.reduce((sum: number, s: { certificateCount: number }) => sum + s.certificateCount, 0);
 
     return NextResponse.json({
       events,

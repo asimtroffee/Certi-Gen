@@ -100,7 +100,8 @@ export const Avatar = ({
 
     const renderMainContent = () => {
         if (canShowImage) {
-            return <img data-avatar-img className="size-full object-cover" src={src} alt={alt} onError={() => setIsFailed(true)} />;
+            /* eslint-disable-next-line @next/next/no-img-element */
+            return <img data-avatar-img className="size-full object-cover" src={src!} alt={alt} onError={() => setIsFailed(true)} />;
         }
 
         if (initials) {

@@ -28,7 +28,7 @@ export default function TeacherSubmissionEngine({
   const [email, setEmail] = useState(teacherEmail);
 
   const {
-    csvHeaders, mapping, setMapping, step, setStep, progress, isSuccess, eta,
+    csvHeaders, mapping, setMapping, step, progress, isSuccess, eta,
     isCancelling, setIsCancelling, cancelRef,
     handleFileUpload, generatePDFs, generatePreview,
   } = useCertificateGenerator({

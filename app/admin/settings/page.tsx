@@ -49,7 +49,7 @@ export default async function SettingsPage() {
             <div>
               <p className="text-sm text-gray-500">Role</p>
               <p className="text-sm font-medium text-gray-900 capitalize">
-                {(session.user as any).role ?? "admin"}
+                {(session.user as { role?: string }).role ?? "admin"}
               </p>
             </div>
           </div>

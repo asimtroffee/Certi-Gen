@@ -28,7 +28,7 @@ export async function requireAdmin(): Promise<
       id: session.user.id,
       email: session.user.email ?? "",
       name: session.user.name ?? null,
-      role: (session.user as any).role ?? "admin",
+      role: (session.user as { role?: string }).role ?? "admin",
     };
   }
 

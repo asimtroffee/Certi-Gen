@@ -22,22 +22,22 @@ export default function AnalyticsFilters({ currentRange, currentEventId }: Props
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    setError(false);
-    fetch("/api/events?limit=200")
-      .then((r) => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const r = await fetch("/api/events?limit=200");
         if (!r.ok) throw new Error("Failed to load events");
-        return r.json();
-      })
-      .then((data) => {
+        const data = await r.json();
         if (Array.isArray(data)) setEvents(data);
         else if (data.events) setEvents(data.events);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         setError(true);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchData();
   }, []);
 
   function navigate(range: string, eventId: string) {

@@ -69,7 +69,12 @@ export default function MagicLinksManager({ eventId }: Props) {
     }
   }, [eventId]);
 
-  useEffect(() => { fetchLinks(1); }, [fetchLinks]);
+  useEffect(() => {
+    const initFetch = async () => {
+      await fetchLinks(1);
+    };
+    initFetch();
+  }, [fetchLinks]);
 
   const handleSend = async (targetEmail?: string) => {
     const addr = (targetEmail || email).trim();

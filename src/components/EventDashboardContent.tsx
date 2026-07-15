@@ -54,29 +54,32 @@ export default function EventDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [data, setData] = React.useState<DashboardData | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [, setLoading] = React.useState(true);
 
   const tab = searchParams.get("tab") === "archived" ? "archived" : "active";
   const query = searchParams.get("q") || "";
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
   React.useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (tab === "archived") params.set("tab", "archived");
-    if (query) params.set("q", query);
-    if (page > 1) params.set("page", String(page));
+    const fetchData = async () => {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (tab === "archived") params.set("tab", "archived");
+      if (query) params.set("q", query);
+      if (page > 1) params.set("page", String(page));
 
-    fetch(`/api/admin/events?${params.toString()}`)
-      .then((res) => {
+      try {
+        const res = await fetch(`/api/admin/events?${params.toString()}`);
         if (!res.ok) throw new Error("Failed to fetch");
-        return res.json();
-      })
-      .then((json: DashboardData) => {
+        const json: DashboardData = await res.json();
         setData(json);
+      } catch {
+        // Handle error silently
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    };
+    fetchData();
   }, [tab, query, page]);
 
   if (!data) {

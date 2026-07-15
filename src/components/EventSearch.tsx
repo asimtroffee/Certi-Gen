@@ -12,7 +12,8 @@ export default function EventSearch({ query, onSearch }: Props) {
   const [value, setValue] = React.useState(query);
 
   React.useEffect(() => {
-    setValue(query);
+    const timer = setTimeout(() => setValue(query), 0);
+    return () => clearTimeout(timer);
   }, [query]);
 
   return (

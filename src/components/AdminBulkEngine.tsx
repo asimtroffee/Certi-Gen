@@ -23,7 +23,7 @@ export default function AdminBulkEngine({
   templateConfig,
 }: Props) {
   const {
-    csvHeaders, mapping, setMapping, step, setStep, progress, isSuccess, eta,
+    csvHeaders, mapping, setMapping, step, progress, isSuccess, eta,
     isCancelling, setIsCancelling, cancelRef,
     handleFileUpload, generatePDFs, generatePreview,
   } = useCertificateGenerator({
