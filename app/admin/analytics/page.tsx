@@ -127,8 +127,8 @@ export default async function AnalyticsPage(props: {
     orderBy: { createdAt: "desc" },
   });
 
-  const totalCertificates = submissions.reduce((s, x) => s + x.certificateCount, 0);
-  const uniqueTeachers = new Set(submissions.map((s) => s.teacherEmail)).size;
+  const totalCertificates = submissions.reduce((s: number, x: any) => s + x.certificateCount, 0);
+  const uniqueTeachers = new Set(submissions.map((s: any) => s.teacherEmail)).size;
 
   // ── Timeline ──
   const timeline = groupTimeline(submissions, startDate, range);
