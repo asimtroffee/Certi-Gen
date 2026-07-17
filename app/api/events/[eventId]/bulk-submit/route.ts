@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { requireAdmin, requireEventOwnership } from "@/src/lib/auth-guard";
+import { inngest } from "@/src/jobs/inngest-client";
 
 interface RouteParams {
   params: Promise<{ eventId: string }>;
@@ -49,13 +50,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         teacherEmail: admin.email,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         studentData: studentData as any,
-        certificateCount: studentData.length,
-        hasDownloaded: true,
-        downloadedAt: new Date(),
+        certificateCount: 0,
+        status: "PENDING",
+        hasDownloaded: false,
       },
     });
 
-    return NextResponse.json(submission);
+    await inngest.send({
+      name: "certificates/generate",
+      data: { submissionId: submission.id },
+    });
+
+    return NextResponse.json({ ...submission, message: "Job queued" });
   } catch (error) {
     console.error("[POST /api/events/:id/bulk-submit]", error);
     return NextResponse.json(

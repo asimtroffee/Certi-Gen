@@ -10,9 +10,7 @@ import {
   NAME_PATTERNS,
   autoMapColumns,
   detectColumn,
-  generateCertificateZip,
   generatePdf,
-  ProgressState,
 } from "@/src/lib/certificate";
 
 type Props = {
@@ -33,9 +31,13 @@ export function useCertificateGenerator({
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [nameColumn, setNameColumn] = useState("");
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0); // Kept for API compatibility, though less precise now
   const [isSuccess, setIsSuccess] = useState(false);
   const [eta, setEta] = useState("");
+  
+  const [jobStatus, setJobStatus] = useState<string>("IDLE");
+  const [zipUrl, setZipUrl] = useState<string | null>(null);
+
   const cancelRef = useRef(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -62,6 +64,35 @@ export function useCertificateGenerator({
     }
   };
 
+  const pollStatus = (id: string) => {
+    const interval = setInterval(async () => {
+      if (cancelRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/submissions/${id}`);
+        const data = await res.json();
+        
+        if (data.status === "COMPLETED") {
+          clearInterval(interval);
+          setJobStatus("COMPLETED");
+          setZipUrl(data.zipUrl);
+          setIsSuccess(true);
+        } else if (data.status === "FAILED") {
+          clearInterval(interval);
+          setJobStatus("FAILED");
+          alert("Generation failed: " + (data.errorLogs || "Unknown error"));
+          setStep(2);
+        } else if (data.status === "PROCESSING") {
+          setEta("Processing certificates in background...");
+        }
+      } catch (err) {
+        console.error("Polling error", err);
+      }
+    }, 3000);
+  };
+
   const generatePDFs = async () => {
     if (csvData.length === 0) {
       alert("No student data to generate certificates for.");
@@ -76,36 +107,10 @@ export function useCertificateGenerator({
     setStep(3);
     cancelRef.current = false;
     setIsCancelling(false);
-    setEta("");
+    setEta("Initializing background job...");
+    setJobStatus("STARTING");
 
     try {
-      const templateResponse = await fetch(templateUrl);
-      if (!templateResponse.ok) throw new Error("Failed to load template image");
-      const templateImageBytes = await templateResponse.arrayBuffer();
-
-      const progressState: ProgressState = {
-        setProgress,
-        setEta,
-      };
-
-      const zipContent = await generateCertificateZip(
-        csvData,
-        templateConfig ?? [],
-        templateUrl,
-        mapping,
-        csvHeaders,
-        nameColumn,
-        progressState,
-        cancelRef,
-        templateImageBytes,
-        "certificate"
-      );
-
-      if (!zipContent) {
-        setStep(2);
-        return;
-      }
-
       const submissionRes = await fetch(submitEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -115,16 +120,18 @@ export function useCertificateGenerator({
         }),
       });
 
+      const data = await submissionRes.json();
       if (!submissionRes.ok) {
-        const errData = await submissionRes.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to save submission");
+        throw new Error(data.error || "Failed to save submission");
       }
 
-      saveAs(zipContent, "Certificates.zip");
-      setIsSuccess(true);
+      setJobStatus("PROCESSING");
+      pollStatus(data.id);
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "An unexpected error occurred during generation.");
+      alert(err instanceof Error ? err.message : "An unexpected error occurred.");
+      setJobStatus("FAILED");
+      setStep(2);
     }
   };
 
@@ -173,5 +180,7 @@ export function useCertificateGenerator({
     handleFileUpload,
     generatePDFs,
     generatePreview,
+    jobStatus,
+    zipUrl,
   };
 }

@@ -178,6 +178,15 @@ model Submission {
   /// Number of certificates generated from this submission.
   certificateCount Int @default(0)
 
+  /// Generation status (PENDING, PROCESSING, COMPLETED, FAILED)
+  status String @default("PENDING")
+
+  /// URL of the generated ZIP file
+  zipUrl String?
+
+  /// Error logs if generation failed
+  errorLogs String?
+
   /// Whether the teacher has downloaded the final ZIP archive.
   hasDownloaded Boolean   @default(false)
   downloadedAt  DateTime?

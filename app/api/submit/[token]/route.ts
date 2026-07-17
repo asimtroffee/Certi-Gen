@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
+import { inngest } from "@/src/jobs/inngest-client";
 
 export async function POST(
   request: Request,
@@ -37,13 +38,18 @@ export async function POST(
         teacherName: body.teacherName || "Teacher",
         teacherEmail: magicLink.teacherEmail,
         studentData: body.studentData,
-        certificateCount: body.studentData?.length || 0,
-        hasDownloaded: true, // We set it to true since they downloaded the ZIP right after generating
-        downloadedAt: new Date(),
+        certificateCount: 0,
+        status: "PENDING",
+        hasDownloaded: false,
       },
     });
 
-    return NextResponse.json(submission);
+    await inngest.send({
+      name: "certificates/generate",
+      data: { submissionId: submission.id },
+    });
+
+    return NextResponse.json({ ...submission, message: "Job queued" });
   } catch (error: unknown) {
     console.error("Failed to save submission:", error);
     return NextResponse.json(

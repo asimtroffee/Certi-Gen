@@ -1,54 +1,37 @@
 "use client";
 
 import React from "react";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle, Download } from "lucide-react";
 import { Button } from "@/components/base/buttons/button";
+import Link from "next/link";
 
 type Props = {
   isSuccess: boolean;
-  progress: number;
+  jobStatus: string;
+  zipUrl: string | null;
   eta: string;
-  isCancelling: boolean;
-  onCancel: () => void;
   onRestart: () => void;
 };
 
 export default function CertificateProgressStep({
   isSuccess,
-  progress,
+  jobStatus,
+  zipUrl,
   eta,
-  isCancelling,
-  onCancel,
   onRestart,
 }: Props) {
   return (
     <div className="text-center max-w-lg mx-auto py-16">
       {!isSuccess ? (
         <>
-          <Loader2 className={`w-12 h-12 text-primary-600 ${isCancelling ? "" : "animate-spin"} mx-auto mb-6`} />
+          <Loader2 className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-6" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {isCancelling ? "Cancelling..." : "Generating Certificates..."}
+            {jobStatus === "STARTING" ? "Initializing..." : "Generating Certificates..."}
           </h2>
           <p className="text-gray-500 mb-6">
-            Please keep this window open. Your browser is securely generating PDFs in real-time.
+            Your certificates are being generated in the background. You can safely close this page, or wait here for the download link.
           </p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-primary-600 h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-sm font-medium text-gray-700 mt-3">{progress}% Complete</p>
-          {eta && <p className="text-xs text-gray-400 mt-1">{eta}</p>}
-          {!isCancelling && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="mt-6 text-sm text-red-600 hover:text-red-700 underline underline-offset-2"
-            >
-              Cancel Generation
-            </button>
-          )}
+          {eta && <p className="text-sm font-medium text-primary-600 mt-3">{eta}</p>}
         </>
       ) : (
         <>
@@ -57,11 +40,21 @@ export default function CertificateProgressStep({
           </div>
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Generation Complete!</h2>
           <p className="text-gray-500 mb-8">
-            Your certificates have been successfully generated and packaged into a ZIP file. The download should have started automatically.
+            Your certificates have been successfully generated and packaged.
           </p>
-          <Button color="secondary" onClick={onRestart}>
-            Start Over
-          </Button>
+          <div className="flex flex-col space-y-4 max-w-xs mx-auto">
+            {zipUrl && (
+              <a href={zipUrl} download>
+                <Button color="primary" className="w-full">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download ZIP
+                </Button>
+              </a>
+            )}
+            <Button color="secondary" onClick={onRestart}>
+              Start Over
+            </Button>
+          </div>
         </>
       )}
     </div>

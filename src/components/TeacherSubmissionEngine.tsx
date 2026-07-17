@@ -28,9 +28,8 @@ export default function TeacherSubmissionEngine({
   const [email, setEmail] = useState(teacherEmail);
 
   const {
-    csvHeaders, mapping, setMapping, step, progress, isSuccess, eta,
-    isCancelling, setIsCancelling, cancelRef,
-    handleFileUpload, generatePDFs, generatePreview,
+    csvHeaders, mapping, setMapping, step, isSuccess, eta,
+    handleFileUpload, generatePDFs, generatePreview, jobStatus, zipUrl
   } = useCertificateGenerator({
     templateUrl,
     templateConfig,
@@ -98,10 +97,9 @@ export default function TeacherSubmissionEngine({
         {step === 3 && (
           <CertificateProgressStep
             isSuccess={isSuccess}
-            progress={progress}
+            jobStatus={jobStatus}
+            zipUrl={zipUrl}
             eta={eta}
-            isCancelling={isCancelling}
-            onCancel={() => { cancelRef.current = true; setIsCancelling(true); }}
             onRestart={() => window.location.reload()}
           />
         )}

@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import JSZip from "jszip";
+
 import type { FieldConfig } from "@/src/components/CanvasEditor";
 
 export const NAME_PATTERNS = ["name", "student name", "full name", "nama murid", "nama pelajar", "nama guru", "nama"];
@@ -155,47 +155,3 @@ export async function generatePdf(
   return pdfDoc.save();
 }
 
-export interface ProgressState {
-  setProgress: (pct: number) => void;
-  setEta: (eta: string) => void;
-}
-
-export async function generateCertificateZip(
-  csvData: Record<string, unknown>[],
-  templateConfig: FieldConfig[],
-  templateUrl: string,
-  mapping: Record<string, string>,
-  csvHeaders: string[],
-  nameColumn: string,
-  progressState: ProgressState,
-  cancelRef: { current: boolean },
-  templateImageBytes: ArrayBuffer,
-  fileNamePrefix: string
-): Promise<Blob | null> {
-  const zip = new JSZip();
-  const greatVibesRef: { current: ArrayBuffer | null } = { current: null };
-  const fontCache: Record<string, PDFFont> = {};
-  const startTime = Date.now();
-
-  for (let i = 0; i < csvData.length; i++) {
-    if (cancelRef.current) return null;
-
-    const student = csvData[i];
-    const pdfBytes = await generatePdf(student, templateConfig, templateUrl, mapping, templateImageBytes, fontCache, greatVibesRef);
-    const fileName = `${student[nameColumn] || student[csvHeaders[0]] || `${fileNamePrefix}_${i + 1}`}.pdf`;
-    zip.file(fileName, pdfBytes);
-
-    const done = i + 1;
-    progressState.setProgress(Math.round((done / csvData.length) * 100));
-    const elapsed = (Date.now() - startTime) / 1000;
-    const rate = done / elapsed;
-    const remaining = (csvData.length - done) / rate;
-    if (remaining > 0) {
-      const m = Math.floor(remaining / 60);
-      const s = Math.round(remaining % 60);
-      progressState.setEta(m > 0 ? `~${m}m ${s}s remaining` : `~${s}s remaining`);
-    }
-  }
-
-  return zip.generateAsync({ type: "blob" });
-}
