@@ -63,7 +63,7 @@ export async function saveFile(
   });
 
   return {
-    url: blob.url,
+    url: blob.downloadUrl,
     originalName: file.name,
     size: file.size,
   };
