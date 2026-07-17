@@ -58,7 +58,7 @@ export async function saveFile(
 
   // --- Upload to Vercel Blob ---
   const blob = await put(blobPath, file, {
-    access: "public",
+    access: "private",
     addRandomSuffix: false,
   });
 
