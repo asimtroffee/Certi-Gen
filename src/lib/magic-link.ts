@@ -14,7 +14,7 @@ export type MagicLinkResult = {
 };
 
 /**
- * Creates a magic link for a teacher and sends the email.
+ * Creates a magic link for a teacher and optionally sends the email.
  * Skips if an active link already exists for this teacher.
  *
  * Returns the created magic link info, or null if skipped.
@@ -23,7 +23,8 @@ export async function createMagicLink(
   eventId: string,
   eventTitle: string,
   teacherName: string,
-  teacherEmail: string
+  teacherEmail: string,
+  sendEmail: boolean = true
 ): Promise<MagicLinkResult | null> {
   const now = new Date();
 
@@ -69,19 +70,25 @@ export async function createMagicLink(
 
   let warning: string | undefined;
 
-  try {
-    await sendMagicLinkEmail({
-      to: teacherEmail.trim(),
-      teacherName,
-      eventTitle,
-      magicUrl,
-      expiresAt,
-    });
-  } catch (emailError) {
-    console.error("[Magic Link] Email send failed:", emailError);
-    const detail = emailError instanceof Error ? emailError.message : String(emailError);
-    warning =
-      `Magic link created but email delivery failed: ${detail}`;
+  if (sendEmail) {
+    try {
+      await sendMagicLinkEmail({
+        to: teacherEmail.trim(),
+        teacherName,
+        eventTitle,
+        magicUrl,
+        expiresAt,
+      });
+      await prisma.magicLink.update({
+        where: { id: magicLink.id },
+        data: { emailSent: true },
+      });
+    } catch (emailError) {
+      console.error("[Magic Link] Email send failed:", emailError);
+      const detail = emailError instanceof Error ? emailError.message : String(emailError);
+      warning =
+        `Magic link created but email delivery failed: ${detail}`;
+    }
   }
 
   return {
@@ -92,4 +99,44 @@ export async function createMagicLink(
     expiresAt: magicLink.expiresAt,
     warning,
   };
+}
+
+/**
+ * Sends a pending email for a magic link and marks it as sent.
+ * Returns true if successful, false if the link doesn't exist or email was already sent.
+ */
+export async function sendPendingEmail(
+  magicLinkId: string
+): Promise<{ success: boolean; warning?: string }> {
+  const magicLink = await prisma.magicLink.findUnique({
+    where: { id: magicLinkId },
+    include: { event: { select: { title: true } } },
+  });
+
+  if (!magicLink) return { success: false, warning: "Magic link not found" };
+  if (magicLink.emailSent) return { success: false, warning: "Email already sent" };
+
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ).replace(/\/$/, "");
+  const magicUrl = `${appUrl}/submit/${magicLink.token}`;
+
+  try {
+    await sendMagicLinkEmail({
+      to: magicLink.teacherEmail,
+      teacherName: magicLink.teacherEmail,
+      eventTitle: magicLink.event.title,
+      magicUrl,
+      expiresAt: magicLink.expiresAt,
+    });
+    await prisma.magicLink.update({
+      where: { id: magicLinkId },
+      data: { emailSent: true },
+    });
+    return { success: true };
+  } catch (emailError) {
+    console.error("[sendPendingEmail] Failed:", emailError);
+    const detail = emailError instanceof Error ? emailError.message : String(emailError);
+    return { success: false, warning: `Email delivery failed: ${detail}` };
+  }
 }

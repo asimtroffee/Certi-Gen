@@ -62,11 +62,11 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Create magic links for each new teacher
+    // Create magic links for each new teacher (no email sent yet)
     const results: Array<{
+      id: string;
       teacherName: string;
       teacherEmail: string;
-      magicUrl?: string;
       skipped?: boolean;
       error?: string;
     }> = [];
@@ -77,16 +77,18 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
           eventId,
           event.title,
           row.teacherName,
-          row.teacherEmail
+          row.teacherEmail,
+          false // don't send email yet
         );
         if (result) {
           results.push({
+            id: result.id,
             teacherName: row.teacherName,
             teacherEmail: row.teacherEmail,
-            magicUrl: result.magicUrl,
           });
         } else {
           results.push({
+            id: "",
             teacherName: row.teacherName,
             teacherEmail: row.teacherEmail,
             skipped: true,
@@ -95,6 +97,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       } catch (err) {
         console.error(`Failed to create magic link for ${row.teacherEmail}:`, err);
         results.push({
+          id: "",
           teacherName: row.teacherName,
           teacherEmail: row.teacherEmail,
           error: "Failed to create magic link",
@@ -108,25 +111,25 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       data: { lastPolledRow: totalRows },
     });
 
-    const created = results.filter((r: { magicUrl?: string }) => r.magicUrl);
-    const skipped = results.filter((r: { skipped?: boolean }) => r.skipped);
+    const created = results.filter((r) => !r.skipped && !r.error);
+    const skipped = results.filter((r) => r.skipped);
 
     return NextResponse.json({
-      message: `Processed ${rows.length} response(s). Created ${created.length} new magic link(s).`,
+      message: `Processed ${rows.length} response(s). Created ${created.length} new magic link(s). No emails sent — review and send from the dashboard.`,
       totalRows,
       lastPolledRow: totalRows,
       linksCreated: created.length,
       skipped: skipped.length,
-      teachers: results.map((r: {
-        teacherName: string;
-        teacherEmail: string;
-        magicUrl?: string;
-        skipped?: boolean;
-        error?: string;
-      }) => ({
+      pendingLinks: created.map((r) => ({
+        id: r.id,
         name: r.teacherName,
         email: r.teacherEmail,
-        status: r.magicUrl ? "link_sent" : r.skipped ? "already_active" : "error",
+        status: "pending" as const,
+      })),
+      teachers: results.map((r) => ({
+        name: r.teacherName,
+        email: r.teacherEmail,
+        status: r.skipped ? "already_active" : r.error ? "error" : "pending",
       })),
     });
   } catch (error) {

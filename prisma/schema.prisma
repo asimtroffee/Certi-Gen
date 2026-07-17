@@ -142,6 +142,9 @@ model MagicLink {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
+  /// Whether the email invitation has been sent.
+  emailSent Boolean @default(false)
+
   /// Admin can manually revoke a link before expiry.
   isRevoked Boolean @default(false)
 
