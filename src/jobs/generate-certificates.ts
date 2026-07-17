@@ -1,13 +1,18 @@
 import { inngest } from "./inngest-client";
-import prisma from "@/src/lib/prisma";
-import { generateCertificateZip, ProgressState, autoMapColumns, detectColumn, NAME_PATTERNS } from "@/src/lib/certificate";
+import { prisma } from "@/src/lib/prisma";
+import { generatePdf, autoMapColumns, detectColumn, NAME_PATTERNS } from "@/src/lib/certificate";
 import type { FieldConfig } from "@/src/components/CanvasEditor";
 import { put } from "@vercel/blob";
+import JSZip from "jszip";
+import type { PDFFont } from "pdf-lib";
 
 export const generateCertificates = inngest.createFunction(
-  { id: "generate-certificates", name: "Generate Certificates" },
-  { event: "certificates/generate" },
-  async ({ event, step }) => {
+  { 
+    id: "generate-certificates", 
+    name: "Generate Certificates",
+    triggers: [{ event: "certificates/generate" }]
+  },
+  async ({ event, step }: any) => {
     const { submissionId } = event.data;
     
     // 1. Fetch submission and mark as processing
@@ -36,31 +41,31 @@ export const generateCertificates = inngest.createFunction(
         if (!res.ok) throw new Error("Failed to fetch template image");
         const templateImageBytes = await res.arrayBuffer();
 
-        const progressState: ProgressState = {
-          setProgress: () => {},
-          setEta: () => {},
-        };
-        
         if (studentData.length === 0) throw new Error("No student data");
         const csvHeaders = Object.keys(studentData[0]);
         const mapping = autoMapColumns(csvHeaders, templateConfig);
         const nameColumn = detectColumn(csvHeaders, NAME_PATTERNS) || csvHeaders[0] || "";
 
-        const cancelRef = { current: false };
+        const zip = new JSZip();
+        const greatVibesRef: { current: ArrayBuffer | null } = { current: null };
+        const fontCache: Record<string, PDFFont> = {};
 
-        const zipBlob = await generateCertificateZip(
-          studentData,
-          templateConfig,
-          templateUrl,
-          mapping,
-          csvHeaders,
-          nameColumn,
-          progressState,
-          cancelRef,
-          templateImageBytes,
-          "certificate"
-        );
-        
+        for (let i = 0; i < studentData.length; i++) {
+          const student = studentData[i];
+          const pdfBytes = await generatePdf(
+            student,
+            templateConfig,
+            templateUrl,
+            mapping,
+            templateImageBytes,
+            fontCache,
+            greatVibesRef
+          );
+          const fileName = `${student[nameColumn] || student[csvHeaders[0]] || `certificate_${i + 1}`}.pdf`;
+          zip.file(fileName, pdfBytes);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
         if (!zipBlob) throw new Error("Failed to generate ZIP");
 
         // Upload to Blob
