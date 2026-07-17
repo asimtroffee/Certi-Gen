@@ -57,21 +57,10 @@ export async function saveFile(
   const blobPath = `${directory}/${filename}`;
 
   // --- Upload to Vercel Blob ---
-  console.log("[upload] Starting blob upload:", { blobPath, type: file.type, size: file.size, hasToken: !!process.env.BLOB_READ_WRITE_TOKEN });
-  let blob;
-  try {
-    blob = await put(blobPath, file, {
-      access: "private",
-      addRandomSuffix: false,
-    });
-    console.log("[upload] Blob upload success:", { url: blob.url });
-  } catch (blobError) {
-    console.error("[upload] Blob put() failed:", blobError);
-    throw new UploadError(
-      `Blob upload failed: ${blobError instanceof Error ? blobError.message : String(blobError)}`,
-      500
-    );
-  }
+  const blob = await put(blobPath, file, {
+    access: "private",
+    addRandomSuffix: false,
+  });
 
   return {
     url: blob.url,

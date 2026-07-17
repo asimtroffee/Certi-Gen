@@ -244,12 +244,11 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
     try {
       const res = await fetch(`/api/events/${eventId}/template`, { method: "POST", body: fd });
       const data = await res.json();
-      if (res.ok && data.templateUrl) {
-        setTemplateUrl(data.templateUrl);
+      if (res.ok && data.event?.templateUrl) {
+        setTemplateUrl(data.event.templateUrl);
         router.refresh();
       } else {
-        console.error("Upload response:", res.status, data);
-        alert(`Upload failed (${res.status}): ${JSON.stringify(data)}`);
+        alert(data.error || "Upload failed");
       }
     } catch {
       alert("Upload error");
