@@ -248,7 +248,8 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
         setTemplateUrl(data.templateUrl);
         router.refresh();
       } else {
-        alert(data.error || "Upload failed");
+        console.error("Upload response:", res.status, data);
+        alert(`Upload failed (${res.status}): ${JSON.stringify(data)}`);
       }
     } catch {
       alert("Upload error");
