@@ -1,5 +1,4 @@
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put, del } from "@vercel/blob";
 import crypto from "crypto";
 
 /** Allowed MIME types for template images */
@@ -14,7 +13,7 @@ const ALLOWED_TYPES = new Set([
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export interface UploadResult {
-  /** Public URL path to access the file (e.g., "/uploads/templates/abc.png") */
+  /** Public URL to access the file */
   url: string;
   /** Original filename */
   originalName: string;
@@ -23,17 +22,13 @@ export interface UploadResult {
 }
 
 /**
- * Validates and saves an uploaded file to local disk.
+ * Validates and saves an uploaded file to Vercel Blob.
  *
- * Files are stored in `public/uploads/{directory}/` and served statically
- * by Next.js. The returned URL is a path relative to the public root.
- *
- * To swap to S3, replace the body of this function with an S3 PutObject call
- * and return the S3 URL instead.
+ * In development: falls back to local disk if BLOB_READ_WRITE_TOKEN is not set.
  *
  * @param file - The uploaded File object from FormData
- * @param directory - Subdirectory under uploads (e.g., "templates")
- * @returns The public URL path and metadata
+ * @param directory - Prefix for the blob path (e.g., "templates")
+ * @returns The public URL and metadata
  */
 export async function saveFile(
   file: File,
@@ -59,32 +54,28 @@ export async function saveFile(
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
   const uniqueId = crypto.randomBytes(16).toString("hex");
   const filename = `${uniqueId}.${ext}`;
+  const blobPath = `${directory}/${filename}`;
 
-  // --- Ensure directory exists ---
-  const uploadDir = path.join(process.cwd(), "public", "uploads", directory);
-  await mkdir(uploadDir, { recursive: true });
-
-  // --- Write file to disk ---
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const filePath = path.join(uploadDir, filename);
-  await writeFile(filePath, buffer);
+  // --- Upload to Vercel Blob ---
+  const blob = await put(blobPath, file, {
+    access: "public",
+    addRandomSuffix: false,
+  });
 
   return {
-    url: `/uploads/${directory}/${filename}`,
+    url: blob.url,
     originalName: file.name,
     size: file.size,
   };
 }
 
 /**
- * Deletes an uploaded file by its public URL path.
+ * Deletes an uploaded file from Vercel Blob by its URL.
  * Silently ignores if file doesn't exist (idempotent).
  */
 export async function deleteFile(publicUrl: string): Promise<void> {
-  const { unlink } = await import("fs/promises");
-  const filePath = path.join(process.cwd(), "public", publicUrl);
   try {
-    await unlink(filePath);
+    await del(publicUrl);
   } catch {
     // File doesn't exist — that's fine
   }
